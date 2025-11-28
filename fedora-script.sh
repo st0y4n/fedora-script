@@ -3,7 +3,7 @@
 # Exit on error
 set -e
 
-echo "Setting up dn..."
+echo "Setting up dnf..."
 printf "%s" "
 max_parallel_downloads=10
 countme=false
