@@ -14,7 +14,6 @@ sudo dnf update -y
 
 echo "📦 Enabling RPM Fusion repositories..."
 sudo dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-"$(rpm -E %fedora)".noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-"$(rpm -E %fedora)".noarch.rpm
-sudo dnf groupupdate core -y
 
 echo "🎥 Enabling OpenH264 codec..."
 sudo dnf config-manager setopt fedora-cisco-openh264.enabled=1
@@ -35,9 +34,23 @@ echo "💡 Preparing Zsh plugins..."
 touch ~/.zshrc
 mkdir -p ~/.zsh/plugins
 
-git clone https://github.com/zsh-users/zsh-autosuggestions ~/.zsh/plugins/zsh-autosuggestions
-git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.zsh/plugins/zsh-syntax-highlighting
-git clone https://github.com/zsh-users/zsh-completions ~/.zsh/plugins/zsh-completions
+if [ ! -d ~/.zsh/plugins/zsh-autosuggestions ]; then
+	git clone https://github.com/zsh-users/zsh-autosuggestions ~/.zsh/plugins/zsh-autosuggestions
+else
+	echo "zsh-autosuggestions directory already exists"
+fi
+
+if [ ! -d ~/.zsh/plugins/zsh-syntax-highlighting ]; then
+        git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.zsh/plugins/zsh-syntax-highlighting
+else
+    	echo "zsh-syntax-highlighting directory already exists"
+fi
+
+if	[ ! -d ~/.zsh/plugins/zsh-completions ]; then
+       	git clone https://github.com/zsh-users/zsh-completions ~/.zsh/plugins/zsh-completions
+else
+    	echo "zsh-completions directory already exists"
+fi
 
 echo "📜 Updating .zshrc with plugin configuration..."
 cat << 'EOF' >> ~/.zshrc
@@ -49,6 +62,7 @@ fpath+=~/.zsh/plugins/zsh-completions
 source ~/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 source ~/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 autoload -Uz compinit && compinit
+
 EOF
 
 echo "🔤 Installing FiraCode Nerd Font..."
@@ -62,14 +76,11 @@ curl -sS https://starship.rs/install.sh | sh -s -- -y
 
 echo "🎨 Applying Catppuccin Powerline Starship preset..."
 mkdir -p ~/.config
-starship preset catppuccin-powerline -o ~/.config/starship.toml
-echo 'eval "$(starship init zsh)"' >> ~/.zshrc
+#starship preset catppuccin-powerline -o ~/.config/starship.toml
+#echo 'eval "$(starship init zsh)"' >> ~/.zshrc
 
 echo "🧩 Adding Flathub repository..."
-sudo flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-
-echo "📦 Adding Terra repository..."
-sudo dnf install --nogpgcheck --repofrompath 'terra,https://repos.fyralabs.com/terra$releasever' terra-release -y
+flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
 echo "🎨 Installing Kvantum and Orchis KDE theme..."
 sudo dnf install kvantum -y
@@ -98,11 +109,12 @@ sudo usermod -a -G libvirt $(whoami)
 echo "Installing other stuff..."
 sudo dnf install distrobox podman docker -y
 
-echo "Do you want nvidia drivers? [y/n]"
-read -r nvidia
+read -r -p "Install NVIDIA drivers? (y/N): " nvidia
 case "$nvidia" in
-	y|Y)
-		sudo dnf install kmod-nvidia xorg-x11-drv-nvidia-cuda akmod-nvidia libva-utils vdpauinfo -y;
+	[yY][eE][sS]|[yY])
+		echo "Installing NVIDIA drivers..."
+		sudo dnf install kmod-nvidia xorg-x11-drv-nvidia-cuda akmod-nvidia libva-utils vdpauinfo -y
+		;;
 	*)
 		echo "Skipping nvidia install..."
 esac
