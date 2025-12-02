@@ -122,7 +122,7 @@ esac
 echo "Upgrading system..."
 sudo dnf upgrade -y
 
-echo "Open grub config "/etc/default/grub" and add "nvidia-drm.modeset=1" to "GRUB_CMDLINE_LINUX" line and then do "sudo grub2-mkconfig -o /boot/grub2/grub.cfg""
+echo "If you've installed NVIDIA drivers open grub config "/etc/default/grub" and add "nvidia-drm.modeset=1" to "GRUB_CMDLINE_LINUX" line and then do "sudo grub2-mkconfig -o /boot/grub2/grub.cfg""
 
 echo "🔁 Reloading Zsh configuration..."
 exec zsh
