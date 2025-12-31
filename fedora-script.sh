@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# efi partition 600mb efi /boot/efi
+# boot partition 1024mb ext4 /boot
+# root partition        btrfs /
+# @log /var/log
+# @home /home
+# @	/
+
 # Exit on error
 set -e
 
