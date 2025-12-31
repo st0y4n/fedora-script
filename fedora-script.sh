@@ -129,6 +129,7 @@ sudo dnf upgrade -y
 echo "If you've installed NVIDIA drivers open grub config "/etc/default/grub" and add "nvidia-drm.modeset=1" to "GRUB_CMDLINE_LINUX" line and then do "sudo grub2-mkconfig -o /boot/grub2/grub.cfg""
 
 echo "Setting up timeshift..."
+sudo cp /etc/fstab /etc/fstab_backup
 sudo sed -i -E '/\sbtrfs\s/ s/(\S+\s+\S+\s+btrfs\s+)(\S+)/\1\2,defaults,noatime,discard=async/' /etc/fstab
 sudo dnf install inotify-tools timeshift -y
 cd ~
