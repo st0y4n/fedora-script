@@ -158,6 +158,11 @@ sudo cp /usr/lib/systemd/system/grub-btrfsd.service /etc/systemd/system/grub-btr
 sudo sed -i 's|^ExecStart=.*|ExecStart=/usr/bin/grub-btrfsd --syslog --timeshift-auto|' /etc/systemd/system/grub-btrfsd.service
 sudo systemctl enable --now grub-btrfsd
 
+# zshrc
+cd ~
+rm ~/.zshrc
+ln -s ~/fedora-script/.zshrc ~/.zshrc
+
 echo "Reloading Zsh configuration..."
 exec zsh
 
