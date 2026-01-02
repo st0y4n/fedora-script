@@ -139,6 +139,9 @@ echo "Setting up timeshift..."
 sudo cp /etc/fstab /etc/fstab_backup
 sudo sed -i -E '/\sbtrfs\s/ s/(\S+\s+\S+\s+btrfs\s+)(\S+)/\1\2,defaults,noatime,discard=async/' /etc/fstab
 sudo sed -i 's/compress=zstd:1/compress-force=zstd:1/g' /etc/fstab
+sudo mount -a
+sudo systemctl daemon-reload
+
 sudo dnf install inotify-tools timeshift -y
 cd ~
 git clone https://github.com/Antynea/grub-btrfs
