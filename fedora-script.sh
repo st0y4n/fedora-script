@@ -31,6 +31,8 @@ sudo dnf swap ffmpeg-free ffmpeg --allowerasing -y
 echo "Updating multimedia group without weak dependencies..."
 sudo dnf update @multimedia --setopt="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin -y
 
+sudo dnf install -y openh264 mozilla-openh264
+
 echo "Installing Git and Zsh..."
 sudo dnf install git zsh -y
 
