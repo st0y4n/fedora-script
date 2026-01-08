@@ -3,9 +3,17 @@
 # efi partition 600mb efi /boot/efi
 # boot partition 1024mb ext4 /boot
 # root partition        btrfs /
-# @log /var/log
-# @home /home
-# @	/
+
+# home  /home
+# root  /
+# opt  /opt
+# cache  /var/cache
+# gdm    /var/lib/gdm or sddm /var/lib/sddm
+# libvirt  /var/lib/libvirt
+# log      /var/log
+# spool    /var/spool
+# tmp     /var/tmp
+
 
 # Exit on error
 set -e
@@ -137,28 +145,56 @@ sudo dnf upgrade -y
 
 echo "If you've installed NVIDIA drivers open grub config "/etc/default/grub" and add "nvidia-drm.modeset=1" to "GRUB_CMDLINE_LINUX" line and then do "sudo grub2-mkconfig -o /boot/grub2/grub.cfg""
 
-echo "Setting up timeshift..."
+echo "Setting up snapper..."
 sudo cp /etc/fstab /etc/fstab_backup
 sudo sed -i -E '/\sbtrfs\s/ s/(\S+\s+\S+\s+btrfs\s+)(\S+)/\1\2,defaults,noatime,discard=async/' /etc/fstab
 sudo sed -i 's/compress=zstd:1/compress-force=zstd:1/g' /etc/fstab
 sudo mount -a
 sudo systemctl daemon-reload
 
-sudo dnf install inotify-tools timeshift -y
+
+sudo dnf install snapper libdnf5-plugin-actions btrfs-assistant inotify-tools git make -y
+
+sudo bash -c "cat > /etc/dnf/libdnf5-plugins/actions.d/snapper.actions" <<'EOF'
+# Get snapshot description
+pre_transaction::::/usr/bin/sh -c echo\ "tmp.cmd=$(ps\ -o\ command\ --no-headers\ -p\ '${pid}')"
+
+# Creates pre snapshot before the transaction and stores the snapshot number in the "tmp.snapper_pre_number"  variable.
+pre_transaction::::/usr/bin/sh -c echo\ "tmp.snapper_pre_number=$(snapper\ create\ -t\ pre\ -c\ number\ -p\ -d\ '${tmp.cmd}')"
+
+# If the variable "tmp.snapper_pre_number" exists, it creates post snapshot after the transaction and removes the variable "tmp.snapper_pre_number".
+post_transaction::::/usr/bin/sh -c [\ -n\ "${tmp.snapper_pre_number}"\ ]\ &&\ snapper\ create\ -t\ post\ --pre-number\ "${tmp.snapper_pre_number}"\ -c\ number\ -d\ "${tmp.cmd}"\ ;\ echo\ tmp.snapper_pre_number\ ;\ echo\ tmp.cmd
+EOF
+
+sudo snapper -c root create-config /
+sudo snapper -c home create-config /home
+sudo restorecon -RFv /.snapshots
+sudo restorecon -RFv /home/.snapshots
+echo 'PRUNENAMES = ".snapshots"' | sudo tee -a /etc/updatedb.conf
+
+
 cd ~
 git clone https://github.com/Antynea/grub-btrfs
 cd grub-btrfs
 sed -i 's/^#GRUB_BTRFS_SUBMENUNAME=.*/GRUB_BTRFS_SUBMENUNAME="Fedora Linux snapshots"/' ./config
-sed -i 's/^#GRUB_BTRFS_SNAPSHOT_KERNEL_PARAMETERS=.*/GRUB_BTRFS_SNAPSHOT_KERNEL_PARAMETERS="rd.live.overlay.overlayfs=1"/' ./config
-sed -i 's/^#GRUB_BTRFS_GRUB_DIRNAME=.*/GRUB_BTRFS_GRUB_DIRNAME="\/boot\/grub2"/' ./config
-sed -i 's/^#GRUB_BTRFS_BOOT_DIRNAME=.*/GRUB_BTRFS_BOOT_DIRNAME="\/boot"/' ./config
-sed -i 's/^#GRUB_BTRFS_MKCONFIG=.*/GRUB_BTRFS_MKCONFIG=\/usr\/sbin\/grub2-mkconfig/' ./config
-sed -i 's/^#GRUB_BTRFS_SCRIPT_CHECK=.*/GRUB_BTRFS_SCRIPT_CHECK=grub2-script-check/' ./config
+sed -i.bkp \
+  -e '/^#GRUB_BTRFS_SNAPSHOT_KERNEL_PARAMETERS=/a \
+GRUB_BTRFS_SNAPSHOT_KERNEL_PARAMETERS="rd.live.overlay.overlayfs=1"' \
+  -e '/^#GRUB_BTRFS_GRUB_DIRNAME=/a \
+GRUB_BTRFS_GRUB_DIRNAME="/boot/grub2"' \
+  -e '/^#GRUB_BTRFS_MKCONFIG=/a \
+GRUB_BTRFS_MKCONFIG=/usr/bin/grub2-mkconfig' \
+  -e '/^#GRUB_BTRFS_SCRIPT_CHECK=/a \
+GRUB_BTRFS_SCRIPT_CHECK=grub2-script-check' \
+  config
+
 sudo make install
 sudo grub2-mkconfig -o /boot/grub2/grub.cfg
-sudo cp /usr/lib/systemd/system/grub-btrfsd.service /etc/systemd/system/grub-btrfsd.service
-sudo sed -i 's|^ExecStart=.*|ExecStart=/usr/bin/grub-btrfsd --syslog --timeshift-auto|' /etc/systemd/system/grub-btrfsd.service
 sudo systemctl enable --now grub-btrfsd
+
+sudo snapper -c home set-config TIMELINE_CREATE=no
+sudo systemctl enable --now snapper-timeline.timer
+sudo systemctl enable --now snapper-cleanup.timer
 
 # zshrc
 cd ~
