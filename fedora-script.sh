@@ -4,15 +4,15 @@
 # boot partition 1024mb ext4 /boot
 # root partition        btrfs /
 
-# home  /home
-# root  /
-# opt  /opt
-# cache  /var/cache
-# gdm    /var/lib/gdm or sddm /var/lib/sddm
-# libvirt  /var/lib/libvirt
-# log      /var/log
-# spool    /var/spool
-# tmp     /var/tmp
+# home  @home
+# root  @
+# opt  @opt
+# cache  @var/cache
+# gdm    @var@lib@gdm or sddm @var@lib@sddm
+# libvirt  @var@lib@libvirt
+# log      @var@log
+# spool    @var@spool
+# tmp     @var@tmp
 
 
 # Exit on error
@@ -149,9 +149,6 @@ echo "Setting up snapper..."
 sudo cp /etc/fstab /etc/fstab_backup
 sudo sed -i -E '/\sbtrfs\s/ s/(\S+\s+\S+\s+btrfs\s+)(\S+)/\1\2,defaults,noatime,discard=async/' /etc/fstab
 sudo sed -i 's/compress=zstd:1/compress-force=zstd:1/g' /etc/fstab
-sudo mount -a
-sudo systemctl daemon-reload
-
 
 sudo dnf install snapper libdnf5-plugin-actions btrfs-assistant inotify-tools git make -y
 
@@ -172,6 +169,13 @@ sudo restorecon -RFv /.snapshots
 sudo restorecon -RFv /home/.snapshots
 echo 'PRUNENAMES = ".snapshots"' | sudo tee -a /etc/updatedb.conf
 
+DEVICE_PATH=$(findmnt -no SOURCE / | cut -d'[' -f1);
+SYSTEM_UUID=$(lsblk -no UUID "$DEVICE_PATH");
+sudo echo "UUID=$SYSTEM_UUID /.snapshots btrfs subvol=@/.snapshots,compress-force=zstd:1,defaults,noatime,discard=async,x-systemd.device-timeout=0 0 0" >> /etc/fstab;
+sudo echo "UUID=$SYSTEM_UUID /home/.snapshots btrfs subvol=@home/.snapshots,compress-force=zstd:1,defaults,noatime,discard=async,x-systemd.device-timeout=0 0 0" >> /etc/fstab;
+
+sudo mount -a
+sudo systemctl daemon-reload
 
 cd ~
 git clone https://github.com/Antynea/grub-btrfs
