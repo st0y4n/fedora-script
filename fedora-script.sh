@@ -147,6 +147,7 @@ echo "If you've installed NVIDIA drivers open grub config "/etc/default/grub" an
 
 echo "Setting up snapper..."
 sudo cp /etc/fstab /etc/fstab_backup
+sudo sed -i '/ \/ / s/subvol=[^, ]*//g; s/,,/,/g; s/, / /g' /etc/fstab;
 sudo sed -i -E '/\sbtrfs\s/ s/(\S+\s+\S+\s+btrfs\s+)(\S+)/\1\2,defaults,noatime,discard=async/' /etc/fstab
 sudo sed -i 's/compress=zstd:1/compress-force=zstd:1/g' /etc/fstab
 
@@ -199,6 +200,11 @@ sudo systemctl enable --now grub-btrfsd
 sudo snapper -c home set-config TIMELINE_CREATE=no
 sudo systemctl enable --now snapper-timeline.timer
 sudo systemctl enable --now snapper-cleanup.timer
+
+echo 'SUSE_BTRFS_SNAPSHOT_BOOTING="true"' | sudo tee -a /etc/default/grub; 
+
+sudo grub2-mkconfig -o /boot/grub2/grub.cfg;
+sudo dracut -f --regenrate-all;
 
 # zshrc
 cd ~
